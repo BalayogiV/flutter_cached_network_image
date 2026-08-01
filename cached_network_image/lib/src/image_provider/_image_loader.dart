@@ -121,7 +121,16 @@ class ImageLoader implements platform.ImageLoader {
         if (result is FileInfo) {
           final file = result.file;
           final bytes = await file.readAsBytes();
-          final decoded = await decode(bytes);
+          ui.Codec decoded;
+          try {
+            decoded = await decode(bytes);
+          } catch (e, stackTrace) {
+            // The cached data is not a valid image, so it cannot be decoded.
+            // Remove it and forward the error to display the errorWidget.
+            await cacheManager.removeFile(cacheKey ?? url);
+            yield* Stream.error(e, stackTrace);
+            return;
+          }
           yield decoded;
         }
       }
